@@ -2,221 +2,208 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Premiação Aisin</title>
+<title>Sistema de Premiação</title>
 
 <style>
 body{
     font-family: Arial;
     background:#f2f2f2;
-    display:flex;
-    justify-content:center;
-    padding:30px;
 }
+
 .card{
     background:white;
-    padding:30px;
-    width:700px;
+    width:90%;
+    max-width:800px;
+    margin:40px auto;
+    padding:25px;
     border-radius:10px;
-    box-shadow:0 0 10px rgba(0,0,0,0.1);
+    box-shadow:0 2px 10px rgba(0,0,0,0.1);
 }
-input{
-    padding:6px;
-    margin:4px 0;
+
+input, select{
+    padding:8px;
+    margin:5px 0;
+    width:100%;
 }
+
 button{
     background:#f4b400;
     border:none;
-    padding:6px 12px;
+    padding:10px 20px;
     cursor:pointer;
+    margin-top:10px;
 }
-.section{
-    margin-top:20px;
-    border-top:1px solid #ccc;
-    padding-top:15px;
+hr{
+    margin:25px 0;
 }
-ul{
-    padding-left:18px;
-}
-.filter-box{
-    background:#fafafa;
-    padding:8px;
-    margin-bottom:8px;
-    border-radius:5px;
+h2{
+    margin-bottom:5px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="card">
-
-<div id="login">
+<div class="card" id="login">
     <h2>Login</h2>
-    <input type="text" id="matricula" placeholder="Digite sua matrícula">
+    <input type="text" id="matricula" placeholder="Matrícula">
     <button onclick="login()">Entrar</button>
 </div>
 
-<div id="painel" style="display:none;">
-
-    <!-- NOME + PONTOS -->
+<div class="card" id="painel" style="display:none;">
     <h2 id="nomeUsuario"></h2>
-    <p><strong>Pontos:</strong> <span id="pontos"></span></p>
+    <h3>Pontos: <span id="pontosUsuario"></span></h3>
 
-    <!-- PRÊMIOS DISPONÍVEIS -->
-    <div class="section">
-        <h3>🏆 Prêmios Disponíveis</h3>
-        <ul id="premiosLista"></ul>
-    </div>
+    <hr>
 
-    <!-- HISTÓRICO DE PONTOS -->
-    <div class="section">
-        <h3>📜 Histórico de Pontos</h3>
+    <h2>🏆 Prêmios Disponíveis</h2>
+    <ul id="listaPremios"></ul>
 
-        <div class="filter-box">
-            Data:
-            <input type="date" id="filtroDataPontos">
-            Descrição:
-            <input type="text" id="filtroDescPontos">
-            <button onclick="aplicarFiltroPontos()">Filtrar</button>
-        </div>
+    <hr>
 
-        <ul id="historicoLista"></ul>
-    </div>
+    <h2>📜 Histórico de Pontos</h2>
+    <input type="date" id="filtroDataHist">
+    <input type="text" id="filtroDescHist" placeholder="Filtrar por descrição">
+    <button onclick="filtrarHistorico()">Filtrar</button>
+    <ul id="listaHistorico"></ul>
 
-    <!-- HISTÓRICO DE RESGATES -->
-    <div class="section">
-        <h3>🎁 Histórico de Resgates</h3>
+    <hr>
 
-        <div class="filter-box">
-            Data:
-            <input type="date" id="filtroDataResgate">
-            Brinde:
-            <input type="text" id="filtroPremioResgate">
-            <button onclick="aplicarFiltroResgates()">Filtrar</button>
-        </div>
+    <h2>🎁 Histórico de Resgates</h2>
+    <input type="date" id="filtroDataRes">
+    <input type="text" id="filtroPremioRes" placeholder="Filtrar por prêmio">
+    <button onclick="filtrarResgates()">Filtrar</button>
+    <ul id="listaResgates"></ul>
 
-        <ul id="resgatesLista"></ul>
-    </div>
+    <hr>
 
-    <div class="section">
-        <button onclick="logout()">Sair</button>
-    </div>
-
-</div>
+    <button onclick="logout()">Sair</button>
 </div>
 
 <script>
 
-const usuariosURL = "COLE_AQUI_O_LINK_USUARIOS";
-const historicoURL = "COLE_AQUI_O_LINK_HISTORICO";
-const resgatesURL = "COLE_AQUI_O_LINK_RESGATES";
-const premiosURL = "COLE_AQUI_O_LINK_PREMIOS";
+const URL_USUARIOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR3Qg8_1tUf-yYSyOGNHCH7f6S8rZ1zbB6CST2oM0QgaFdUX5kCD25mdtKSo4nAeOgHXWgO_Qd-UipH/pub?gid=0&single=true&output=csv";
+const URL_HISTORICO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR3Qg8_1tUf-yYSyOGNHCH7f6S8rZ1zbB6CST2oM0QgaFdUX5kCD25mdtKSo4nAeOgHXWgO_Qd-UipH/pub?gid=1676923497&single=true&output=csv";
+const URL_RESGATES = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR3Qg8_1tUf-yYSyOGNHCH7f6S8rZ1zbB6CST2oM0QgaFdUX5kCD25mdtKSo4nAeOgHXWgO_Qd-UipH/pub?gid=1374780260&single=true&output=csv";
+const URL_PREMIOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR3Qg8_1tUf-yYSyOGNHCH7f6S8rZ1zbB6CST2oM0QgaFdUX5kCD25mdtKSo4nAeOgHXWgO_Qd-UipH/pub?gid=1841725743&single=true&output=csv";
 
-let usuarios=[], historico=[], resgates=[], premios=[], usuarioAtual="";
+let usuarioAtual = null;
+let historicoGlobal = [];
+let resgatesGlobal = [];
 
-function csvToArray(text){
-    const rows=text.trim().split("\n");
-    const headers=rows[0].split(",");
-    return rows.slice(1).map(row=>{
-        const values=row.split(",");
-        let obj={};
-        headers.forEach((h,i)=>{
-            obj[h.trim()] = values[i]?values[i].trim():"";
+function csvToJson(text){
+    const linhas = text.split("\n");
+    const cabecalho = linhas[0].split(",");
+    return linhas.slice(1).map(linha=>{
+        const dados = linha.split(",");
+        let obj = {};
+        cabecalho.forEach((col,i)=>{
+            obj[col.trim()] = dados[i]?.trim();
         });
         return obj;
     });
 }
 
-async function carregarDados(){
-    usuarios=csvToArray(await (await fetch(usuariosURL)).text());
-    historico=csvToArray(await (await fetch(historicoURL)).text());
-    resgates=csvToArray(await (await fetch(resgatesURL)).text());
-    premios=csvToArray(await (await fetch(premiosURL)).text());
-}
-
 async function login(){
-    const mat=document.getElementById("matricula").value;
-    if(!mat){ alert("Digite a matrícula"); return;}
-    await carregarDados();
-    const user=usuarios.find(u=>u.Matricula===mat);
-    if(!user){ alert("Matrícula não encontrada"); return;}
-    usuarioAtual=mat;
+    const mat = document.getElementById("matricula").value.trim();
+    const res = await fetch(URL_USUARIOS);
+    const data = csvToJson(await res.text());
+
+    const user = data.find(u => u.Matricula == mat);
+
+    if(!user){
+        alert("Matrícula não encontrada");
+        return;
+    }
+
+    usuarioAtual = user;
+
     document.getElementById("login").style.display="none";
     document.getElementById("painel").style.display="block";
-    document.getElementById("nomeUsuario").innerText=user.Nome || user.nome;
-    document.getElementById("pontos").innerText=user.Pontos;
-    mostrarPremios();
-    mostrarHistorico();
-    mostrarResgates();
+
+    document.getElementById("nomeUsuario").innerText = user.nome || user.Nome;
+    document.getElementById("pontosUsuario").innerText = user.Pontos;
+
+    carregarPremios();
+    carregarHistorico();
+    carregarResgates();
 }
 
-function converterDataInputParaPlanilha(dataISO){
-    if(!dataISO) return "";
-    const partes=dataISO.split("-");
-    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+async function carregarPremios(){
+    const res = await fetch(URL_PREMIOS);
+    const data = csvToJson(await res.text());
+    const lista = document.getElementById("listaPremios");
+    lista.innerHTML="";
+
+    data.filter(p=>p.Ativo=="SIM")
+        .forEach(p=>{
+            lista.innerHTML+=`<li>${p["Nome Premio"]} - ${p["Pontos Necessarios"]} pts</li>`;
+        });
 }
 
-function mostrarHistorico(lista=historico){
-    const ul=document.getElementById("historicoLista");
+async function carregarHistorico(){
+    const res = await fetch(URL_HISTORICO);
+    const data = csvToJson(await res.text());
+
+    historicoGlobal = data.filter(h=>h.Matricula==usuarioAtual.Matricula);
+    renderHistorico(historicoGlobal);
+}
+
+function renderHistorico(lista){
+    const ul = document.getElementById("listaHistorico");
     ul.innerHTML="";
-    lista.filter(h=>h.Matricula===usuarioAtual)
-         .forEach(h=>{
-            ul.innerHTML+=`<li>${h.ID} - ${h.Data} - ${h.Descrição} (${h.Pontos} pts)</li>`;
-         });
+    lista.forEach(h=>{
+        ul.innerHTML+=`<li>${h.ID} - ${h.Data} - ${h.Descrição} (${h.Pontos} pts)</li>`;
+    });
 }
 
-function mostrarPremios(){
-    const ul=document.getElementById("premiosLista");
+function filtrarHistorico(){
+    const dataFiltro = document.getElementById("filtroDataHist").value;
+    const descFiltro = document.getElementById("filtroDescHist").value.toLowerCase();
+
+    let filtrado = historicoGlobal.filter(h=>{
+        const okData = dataFiltro ? h.Data==dataFiltro : true;
+        const okDesc = descFiltro ? h.Descrição.toLowerCase().includes(descFiltro) : true;
+        return okData && okDesc;
+    });
+
+    renderHistorico(filtrado);
+}
+
+async function carregarResgates(){
+    const res = await fetch(URL_RESGATES);
+    const data = csvToJson(await res.text());
+
+    resgatesGlobal = data.filter(r=>r.Matricula==usuarioAtual.Matricula);
+    renderResgates(resgatesGlobal);
+}
+
+function renderResgates(lista){
+    const ul = document.getElementById("listaResgates");
     ul.innerHTML="";
-    premios.filter(p=>p.Ativo==="Sim"||p.Ativo==="SIM")
-           .forEach(p=>{
-            ul.innerHTML+=`<li>${p["Nome Premio"]} - ${p["Pontos Necessarios"]} pts</li>`;
-           });
+    lista.forEach(r=>{
+        ul.innerHTML+=`<li>${r.Data} - ${r.Premio} (${r.Pontos} pts)</li>`;
+    });
 }
 
-function mostrarResgates(lista=resgates){
-    const ul=document.getElementById("resgatesLista");
-    ul.innerHTML="";
-    lista.filter(r=>r.Matricula===usuarioAtual)
-         .forEach(r=>{
-            ul.innerHTML+=`<li>${r.Data} - ${r.Premio} (${r.Pontos} pts)</li>`;
-         });
+function filtrarResgates(){
+    const dataFiltro = document.getElementById("filtroDataRes").value;
+    const premioFiltro = document.getElementById("filtroPremioRes").value.toLowerCase();
+
+    let filtrado = resgatesGlobal.filter(r=>{
+        const okData = dataFiltro ? r.Data==dataFiltro : true;
+        const okPremio = premioFiltro ? r.Premio.toLowerCase().includes(premioFiltro) : true;
+        return okData && okPremio;
+    });
+
+    renderResgates(filtrado);
 }
 
-function aplicarFiltroPontos(){
-    const dataISO=document.getElementById("filtroDataPontos").value;
-    const desc=document.getElementById("filtroDescPontos").value.toLowerCase();
-    const dataFormatada=converterDataInputParaPlanilha(dataISO);
-
-    let filtrado=historico.filter(h=>h.Matricula===usuarioAtual);
-
-    if(dataFormatada)
-        filtrado=filtrado.filter(h=>h.Data===dataFormatada);
-
-    if(desc)
-        filtrado=filtrado.filter(h=>h.Descrição.toLowerCase().includes(desc));
-
-    mostrarHistorico(filtrado);
+function logout(){
+    location.reload();
 }
-
-function aplicarFiltroResgates(){
-    const dataISO=document.getElementById("filtroDataResgate").value;
-    const premio=document.getElementById("filtroPremioResgate").value.toLowerCase();
-    const dataFormatada=converterDataInputParaPlanilha(dataISO);
-
-    let filtrado=resgates.filter(r=>r.Matricula===usuarioAtual);
-
-    if(dataFormatada)
-        filtrado=filtrado.filter(r=>r.Data===dataFormatada);
-
-    if(premio)
-        filtrado=filtrado.filter(r=>r.Premio.toLowerCase().includes(premio));
-
-    mostrarResgates(filtrado);
-}
-
-function logout(){ location.reload(); }
 
 </script>
+
 </body>
 </html>
