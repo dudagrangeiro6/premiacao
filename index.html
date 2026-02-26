@@ -2,59 +2,188 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Premiação</title>
+<title>Portal de Pontuação</title>
+
 <style>
-body { font-family: Arial; background:#f4f4f4; text-align:center; }
-.box { background:white; padding:30px; margin:50px auto; width:300px; border-radius:10px; box-shadow:0 0 10px #ccc; }
-input { width:90%; padding:8px; margin:8px 0; }
-button { padding:10px 20px; background:#ffc107; border:none; cursor:pointer; }
-.hidden { display:none; }
+body{
+    font-family: Arial;
+    background:#f4f4f4;
+    padding:30px;
+}
+
+.container{
+    background:white;
+    padding:20px;
+    border-radius:8px;
+    max-width:700px;
+    margin:auto;
+}
+
+input, button{
+    padding:10px;
+    margin:5px 0;
+    width:100%;
+}
+
+ul{
+    padding-left:20px;
+}
+
+hr{
+    margin:20px 0;
+}
 </style>
 </head>
+
 <body>
 
-<div class="box" id="login">
-<h2>Login</h2>
-<input type="text" id="matricula" placeholder="Matrícula">
-<input type="password" id="senha" placeholder="Senha">
-<button onclick="login()">Entrar</button>
-<p id="erro" style="color:red;"></p>
+<div class="container">
+
+<div id="login">
+    <h2>Login</h2>
+    <input type="text" id="matricula" placeholder="Matrícula">
+    <input type="password" id="senha" placeholder="Senha">
+    <button onclick="login()">Entrar</button>
+    <p id="erro" style="color:red;"></p>
 </div>
 
-<div class="box hidden" id="painel">
-<h2 id="nomeUsuario"></h2>
-<p><strong>Pontos:</strong> <span id="pontos"></span></p>
-<button onclick="logout()">Sair</button>
+<div id="painel" style="display:none;">
+
+    <h2 id="nomeUsuario"></h2>
+    <p><strong>Pontos:</strong> <span id="pontos"></span></p>
+
+    <hr>
+
+    <h3>📜 Histórico de Pontos</h3>
+    <ul id="historicoPontos"></ul>
+
+    <hr>
+
+    <h3>🏆 Prêmios Disponíveis</h3>
+    <ul id="listaPremios"></ul>
+
+    <hr>
+
+    <h3>🎁 Histórico de Resgates</h3>
+    <ul id="historicoResgates"></ul>
+
+    <br>
+    <button onclick="logout()">Sair</button>
+
+</div>
+
 </div>
 
 <script>
-const sheetID = "1oUFqTuhJS5Ghf8LXte99Rh0SLrNPfVYRr8nqkU2hoJc";
-const url = `https://opensheet.elk.sh/${sheetID}/Usuarios`;
 
-async function login() {
-    const mat = document.getElementById("matricula").value;
-    const senha = document.getElementById("senha").value;
+// ================= LINKS CSV =================
 
-    const res = await fetch(url);
-    const data = await res.json();
+const urlUsuarios = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR3Qg8_1tUf-yYSyOGNHCH7f6S8rZ1zbB6CST2oM0QgaFdUX5kCD25mdtKSo4nAeOgHXWgO_Qd-UipH/pub?gid=0&single=true&output=csv";
 
-    const user = data.find(u => 
-        u.Matricula === mat && u.Senha === senha
+const urlHistorico = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR3Qg8_1tUf-yYSyOGNHCH7f6S8rZ1zbB6CST2oM0QgaFdUX5kCD25mdtKSo4nAeOgHXWgO_Qd-UipH/pub?gid=1676923497&single=true&output=csv";
+
+const urlResgates = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR3Qg8_1tUf-yYSyOGNHCH7f6S8rZ1zbB6CST2oM0QgaFdUX5kCD25mdtKSo4nAeOgHXWgO_Qd-UipH/pub?gid=1374780260&single=true&output=csv";
+
+const urlPremios = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR3Qg8_1tUf-yYSyOGNHCH7f6S8rZ1zbB6CST2oM0QgaFdUX5kCD25mdtKSo4nAeOgHXWgO_Qd-UipH/pub?gid=1841725743&single=true&output=csv";
+
+// ================= FUNÇÃO CSV =================
+
+function csvToArray(str){
+    const rows = str.trim().split("\n").map(r => r.split(","));
+    const headers = rows.shift();
+    return rows.map(row => {
+        let obj = {};
+        headers.forEach((h,i)=>{
+            obj[h.trim()] = row[i]?.trim();
+        });
+        return obj;
+    });
+}
+
+// ================= LOGIN =================
+
+async function login(){
+
+    const matricula = document.getElementById("matricula").value.trim();
+    const senha = document.getElementById("senha").value.trim();
+
+    const usuariosCSV = await fetch(urlUsuarios).then(r=>r.text());
+    const usuarios = csvToArray(usuariosCSV);
+
+    const user = usuarios.find(u => 
+        u.Matricula == matricula && u.Senha == senha
     );
 
-    if(user){
-        document.getElementById("login").classList.add("hidden");
-        document.getElementById("painel").classList.remove("hidden");
-        document.getElementById("nomeUsuario").innerText = user.Nome;
-        document.getElementById("pontos").innerText = user.Pontos;
-    } else {
-        document.getElementById("erro").innerText = "Matrícula ou senha incorreta";
+    if(!user){
+        document.getElementById("erro").innerText = "Matrícula ou senha inválida.";
+        return;
     }
+
+    carregarPainel(user);
+}
+
+async function carregarPainel(user){
+
+    document.getElementById("login").style.display="none";
+    document.getElementById("painel").style.display="block";
+
+    document.getElementById("nomeUsuario").innerText = user.nome;
+    document.getElementById("pontos").innerText = user.Pontos;
+
+    // ===== HISTORICO PONTOS =====
+
+    const historicoCSV = await fetch(urlHistorico).then(r=>r.text());
+    const historico = csvToArray(historicoCSV);
+
+    const listaHist = document.getElementById("historicoPontos");
+    listaHist.innerHTML="";
+
+    historico.forEach(h=>{
+        if(h.Matricula == user.Matricula){
+            const li = document.createElement("li");
+            li.innerText = h.Data + " - " + h.Descrição + " ("+h.Pontos+" pts)";
+            listaHist.appendChild(li);
+        }
+    });
+
+    // ===== PREMIOS DISPONIVEIS =====
+
+    const premiosCSV = await fetch(urlPremios).then(r=>r.text());
+    const premios = csvToArray(premiosCSV);
+
+    const listaPremios = document.getElementById("listaPremios");
+    listaPremios.innerHTML="";
+
+    premios.forEach(p=>{
+        if(p.Ativo == "SIM"){
+            const li = document.createElement("li");
+            li.innerText = p["Nome Premio"] + " - " + p["Pontos Necessarios"] + " pts";
+            listaPremios.appendChild(li);
+        }
+    });
+
+    // ===== RESGATES =====
+
+    const resgatesCSV = await fetch(urlResgates).then(r=>r.text());
+    const resgates = csvToArray(resgatesCSV);
+
+    const listaResg = document.getElementById("historicoResgates");
+    listaResg.innerHTML="";
+
+    resgates.forEach(r=>{
+        if(r.Matricula == user.Matricula){
+            const li = document.createElement("li");
+            li.innerText = r.Data + " - " + r.Premio + " ("+r.Pontos+" pts)";
+            listaResg.appendChild(li);
+        }
+    });
+
 }
 
 function logout(){
     location.reload();
 }
+
 </script>
 
 </body>
