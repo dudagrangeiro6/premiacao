@@ -43,6 +43,7 @@ button{
 ul{
     padding-left:18px;
 }
+
 .filter-box{
     background:#fafafa;
     padding:10px;
@@ -56,16 +57,24 @@ ul{
 
 <div class="card">
 
+<!-- LOGIN -->
 <div id="login">
     <h2>Login</h2>
     <input type="text" id="matricula" placeholder="Digite sua matrícula">
     <button onclick="login()">Entrar</button>
-    <p id="erro" style="color:red;"></p>
 </div>
 
+<!-- PAINEL -->
 <div id="painel" style="display:none;">
+
     <h2 id="nomeUsuario"></h2>
     <p><strong>Pontos:</strong> <span id="pontos"></span></p>
+
+    <!-- PRÊMIOS DISPONÍVEIS -->
+    <div class="section">
+        <h3>🏆 Prêmios Disponíveis</h3>
+        <ul id="premiosLista"></ul>
+    </div>
 
     <!-- HISTÓRICO DE PONTOS -->
     <div class="section">
@@ -73,7 +82,7 @@ ul{
 
         <div class="filter-box">
             <strong>Filtros:</strong><br>
-            Data: <input type="date" id="filtroDataPontos">
+            ID: <input type="text" id="filtroIDPontos" placeholder="Buscar ID">
             Descrição: <input type="text" id="filtroDescPontos" placeholder="Buscar descrição">
             <button onclick="aplicarFiltroPontos()">Filtrar</button>
         </div>
@@ -81,20 +90,14 @@ ul{
         <ul id="historicoLista"></ul>
     </div>
 
-    <!-- PRÊMIOS -->
-    <div class="section">
-        <h3>🏆 Prêmios Disponíveis</h3>
-        <ul id="premiosLista"></ul>
-    </div>
-
-    <!-- RESGATES -->
+    <!-- HISTÓRICO DE RESGATES -->
     <div class="section">
         <h3>🎁 Histórico de Resgates</h3>
 
         <div class="filter-box">
-            <strong>Filtros:</strong><br>
-            Data: <input type="date" id="filtroDataResgate">
-            Brinde: <input type="text" id="filtroPremioResgate" placeholder="Buscar prêmio">
+            <strong>Filtro:</strong><br>
+            Tipo de Prêmio:
+            <input type="text" id="filtroPremioResgate" placeholder="Buscar prêmio">
             <button onclick="aplicarFiltroResgates()">Filtrar</button>
         </div>
 
@@ -104,6 +107,7 @@ ul{
     <div class="section">
         <button onclick="logout()">Sair</button>
     </div>
+
 </div>
 
 </div>
@@ -124,7 +128,7 @@ function csvToArray(text){
         const values = row.split(",");
         let obj={};
         headers.forEach((h,i)=>{
-            obj[h.trim()] = values[i]?values[i].trim():"";
+            obj[h.trim()] = values[i] ? values[i].trim() : "";
         });
         return obj;
     });
@@ -138,73 +142,92 @@ async function carregarDados(){
 }
 
 async function login(){
-    const mat=document.getElementById("matricula").value;
+    const mat=document.getElementById("matricula").value.trim();
     if(!mat){ alert("Digite sua matrícula"); return;}
+
     await carregarDados();
-    const user=usuarios.find(u=>u.Matricula===mat);
+
+    const user=usuarios.find(u=>u.Matricula.trim()===mat);
+
     if(!user){ alert("Matrícula não encontrada"); return;}
+
     usuarioAtual=mat;
+
     document.getElementById("login").style.display="none";
     document.getElementById("painel").style.display="block";
-    document.getElementById("nomeUsuario").innerText=user.Nome || user.nome;
-    document.getElementById("pontos").innerText=user.Pontos;
-    mostrarHistorico();
-    mostrarPremios();
-    mostrarResgates();
-}
 
-function mostrarHistorico(lista=historico){
-    const ul=document.getElementById("historicoLista");
-    ul.innerHTML="";
-    lista.filter(h=>h.Matricula===usuarioAtual)
-         .forEach(h=>{
-            ul.innerHTML+=`<li>${h.ID} - ${h.Data} - ${h.Descrição} (${h.Pontos} pts)</li>`;
-         });
+    document.getElementById("nomeUsuario").innerText=user.nome || user.Nome;
+    document.getElementById("pontos").innerText=user.Pontos;
+
+    mostrarPremios();
+    mostrarHistorico();
+    mostrarResgates();
 }
 
 function mostrarPremios(){
     const ul=document.getElementById("premiosLista");
     ul.innerHTML="";
-    premios.filter(p=>p.Ativo==="Sim"||p.Ativo==="SIM")
-           .forEach(p=>{
-            ul.innerHTML+=`<li>${p["Nome Premio"]} - ${p["Pontos Necessarios"]} pts</li>`;
-           });
+    premios
+      .filter(p=>p.Ativo==="Sim"||p.Ativo==="SIM")
+      .forEach(p=>{
+        ul.innerHTML+=`<li>${p["Nome Premio"]} - ${p["Pontos Necessarios"]} pts</li>`;
+      });
+}
+
+function mostrarHistorico(lista=historico){
+    const ul=document.getElementById("historicoLista");
+    ul.innerHTML="";
+
+    lista
+      .filter(h=>h.Matricula===usuarioAtual)
+      .forEach(h=>{
+        ul.innerHTML+=`<li>${h.ID} - ${h.Data} - ${h.Descrição} (${h.Pontos} pts)</li>`;
+      });
 }
 
 function mostrarResgates(lista=resgates){
     const ul=document.getElementById("resgatesLista");
     ul.innerHTML="";
-    lista.filter(r=>r.Matricula===usuarioAtual)
-         .forEach(r=>{
-            ul.innerHTML+=`<li>${r.Data} - ${r.Premio} (${r.Pontos} pts)</li>`;
-         });
+
+    lista
+      .filter(r=>r.Matricula===usuarioAtual)
+      .forEach(r=>{
+        ul.innerHTML+=`<li>${r.Data} - ${r.Premio} (${r.Pontos} pts)</li>`;
+      });
 }
 
 function aplicarFiltroPontos(){
-    const data=document.getElementById("filtroDataPontos").value;
+    const id=document.getElementById("filtroIDPontos").value.toLowerCase();
     const desc=document.getElementById("filtroDescPontos").value.toLowerCase();
+
     let filtrado=historico.filter(h=>h.Matricula===usuarioAtual);
-    if(data){
-    const dataFormatada = data.split("-").reverse().join("/");
-    filtrado = filtrado.filter(h=>h.Data === dataFormatada);
-}
-    if(desc) filtrado=filtrado.filter(h=>h.Descrição.toLowerCase().includes(desc));
+
+    if(id){
+        filtrado=filtrado.filter(h=>h.ID && h.ID.toLowerCase().includes(id));
+    }
+
+    if(desc){
+        filtrado=filtrado.filter(h=>h.Descrição && h.Descrição.toLowerCase().includes(desc));
+    }
+
     mostrarHistorico(filtrado);
 }
 
 function aplicarFiltroResgates(){
-    const data=document.getElementById("filtroDataResgate").value;
     const premio=document.getElementById("filtroPremioResgate").value.toLowerCase();
+
     let filtrado=resgates.filter(r=>r.Matricula===usuarioAtual);
-   if(data){
-    const dataFormatada = data.split("-").reverse().join("/");
-    filtrado = filtrado.filter(r=>r.Data === dataFormatada);
-}
-    if(premio) filtrado=filtrado.filter(r=>r.Premio.toLowerCase().includes(premio));
+
+    if(premio){
+        filtrado=filtrado.filter(r=>r.Premio && r.Premio.toLowerCase().includes(premio));
+    }
+
     mostrarResgates(filtrado);
 }
 
-function logout(){ location.reload(); }
+function logout(){
+    location.reload();
+}
 
 </script>
 </body>
