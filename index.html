@@ -184,7 +184,10 @@ function aplicarFiltroPontos(){
     const data=document.getElementById("filtroDataPontos").value;
     const desc=document.getElementById("filtroDescPontos").value.toLowerCase();
     let filtrado=historico.filter(h=>h.Matricula===usuarioAtual);
-    if(data) filtrado=filtrado.filter(h=>h.Data===data);
+    if(data){
+    const dataFormatada = data.split("-").reverse().join("/");
+    filtrado = filtrado.filter(h=>h.Data === dataFormatada);
+}
     if(desc) filtrado=filtrado.filter(h=>h.Descrição.toLowerCase().includes(desc));
     mostrarHistorico(filtrado);
 }
@@ -193,7 +196,10 @@ function aplicarFiltroResgates(){
     const data=document.getElementById("filtroDataResgate").value;
     const premio=document.getElementById("filtroPremioResgate").value.toLowerCase();
     let filtrado=resgates.filter(r=>r.Matricula===usuarioAtual);
-    if(data) filtrado=filtrado.filter(r=>r.Data===data);
+   if(data){
+    const dataFormatada = data.split("-").reverse().join("/");
+    filtrado = filtrado.filter(r=>r.Data === dataFormatada);
+}
     if(premio) filtrado=filtrado.filter(r=>r.Premio.toLowerCase().includes(premio));
     mostrarResgates(filtrado);
 }
