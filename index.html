@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Premiação</title>
+<style>
+body { font-family: Arial; background:#f4f4f4; text-align:center; }
+.box { background:white; padding:30px; margin:50px auto; width:300px; border-radius:10px; box-shadow:0 0 10px #ccc; }
+input { width:90%; padding:8px; margin:8px 0; }
+button { padding:10px 20px; background:#ffc107; border:none; cursor:pointer; }
+.hidden { display:none; }
+</style>
+</head>
+<body>
+
+<div class="box" id="login">
+<h2>Login</h2>
+<input type="text" id="matricula" placeholder="Matrícula">
+<input type="password" id="senha" placeholder="Senha">
+<button onclick="login()">Entrar</button>
+<p id="erro" style="color:red;"></p>
+</div>
+
+<div class="box hidden" id="painel">
+<h2 id="nomeUsuario"></h2>
+<p><strong>Pontos:</strong> <span id="pontos"></span></p>
+<button onclick="logout()">Sair</button>
+</div>
+
+<script>
+const sheetID = "1oUFqTuhJS5Ghf8LXte99Rh0SLrNPfVYRr8nqkU2hoJc";
+const url = `https://opensheet.elk.sh/${sheetID}/Usuarios`;
+
+async function login() {
+    const mat = document.getElementById("matricula").value;
+    const senha = document.getElementById("senha").value;
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const user = data.find(u => 
+        u.Matricula === mat && u.Senha === senha
+    );
+
+    if(user){
+        document.getElementById("login").classList.add("hidden");
+        document.getElementById("painel").classList.remove("hidden");
+        document.getElementById("nomeUsuario").innerText = user.Nome;
+        document.getElementById("pontos").innerText = user.Pontos;
+    } else {
+        document.getElementById("erro").innerText = "Matrícula ou senha incorreta";
+    }
+}
+
+function logout(){
+    location.reload();
+}
+</script>
+
+</body>
+</html>
